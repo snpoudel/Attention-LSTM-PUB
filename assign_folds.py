@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def assign_folds(input_csv="basin_list.csv", output_csv="basin_list_with_folds.csv", n_folds=5, seed=42):
+def assign_folds(input_csv="data/basin_list.csv", output_csv="data/basin_list_with_folds.csv", n_folds=5, seed=42):
     df = pd.read_csv(input_csv, dtype=str)
     np.random.seed(seed)
     shuffled = df.sample(frac=1, random_state=seed).reset_index(drop=True)
