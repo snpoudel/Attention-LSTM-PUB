@@ -4,7 +4,7 @@ import os
 import torch
 import numpy as np
 import random
-from config import hparams, output_dir, figure_dir, model_ckpt_file, attention_matrix_file
+from config import hparams, OUTPUT_DIR, FIGURE_DIR, MODEL_CKPT_FILE, ATTENTION_MATRIX_FILE
 from model import BasinLevelCrossBasinAttention
 from utils import (
     load_data, save_predictions_per_basin_with_dates,
@@ -49,10 +49,10 @@ def train_and_evaluate(model, train_data, train_targets, test_data, test_targets
 
         if val_loss.item() < best_loss:
             best_loss = val_loss.item()
-            torch.save(model.state_dict(), os.path.join(output_dir, model_ckpt_file))
-            torch.save(attn, os.path.join(output_dir, attention_matrix_file))
+            torch.save(model.state_dict(), os.path.join(OUTPUT_DIR, MODEL_CKPT_FILE))
+            torch.save(attn, os.path.join(OUTPUT_DIR, ATTENTION_MATRIX_FILE))
 
-    model.load_state_dict(torch.load(os.path.join(output_dir, model_ckpt_file)))
+    model.load_state_dict(torch.load(os.path.join(OUTPUT_DIR, MODEL_CKPT_FILE)))
     model.eval()
 
     with torch.no_grad():

@@ -10,7 +10,7 @@ from train import train_and_evaluate #using train_and_evaluate from train.py
 
 def get_hparam_grid():
     return {
-        'hidden_dim': [2, 3],
+        'hidden_dim': [2, 4],
         'dropout': [0.3],
         'num_heads': [2],
         'lr': [1e-4],
@@ -19,7 +19,7 @@ def get_hparam_grid():
         'context_dropout': [0.3]
     }
 
-def tune_hyperparams(fold_index): #validate on fold_index and train on the rest
+def tune_hyperparams(fold_index): #validate on fold_index 0 and train on the rest
     basin_df = pd.read_csv(BASIN_LIST_FILE, dtype=str)
     train_ids = basin_df[basin_df["fold"] != str(fold_index)]["basin"].tolist()
     val_ids = basin_df[basin_df["fold"] == str(fold_index)]["basin"].tolist()
@@ -61,10 +61,8 @@ def tune_hyperparams(fold_index): #validate on fold_index and train on the rest
             test_data=val_data,
             test_targets=val_targets,
             device=DEVICE,
-            hparams=hparams,
             folder=DATA_FOLDER,
             seq_len=hparams['seq_length'],
-            silent=True  # Avoids plots and saves
         )
 
         results.append({**hparams, "val_loss": val_loss})
