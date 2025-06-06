@@ -30,6 +30,7 @@ LSTM-Attention4PUB/
 4. Train the model using `train.py` with the desired fold.
 5. Run predictions using `predict.py` on the trained model.
 6. Visualize results using `plot.py` to generate loss curves, attention matrices, and evaluation metrics.
+
 PS: The Cross-Basin Attention LSTM model developed in this project is inside `model.py`. The utility functions for data loading, randomizing sequences, saving predictions, and making plots are in `utils.py`.
 
 ## Additional Notes
