@@ -8,11 +8,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 import random
-from config import figure_dir, output_dir
+from config import FIGURE_DIR, OUTPUT_DIR, BASIN_LIST_FILE
 
 #later add nse making function also in the utils
 
-pub_basin_ids = pd.read_csv("basin_list.csv", dtype=str).query("gauge == 'False'")['basin'].tolist()
+pub_basin_ids = pd.read_csv(BASIN_LIST_FILE, dtype=str).query("gauge == 'False'")['basin'].tolist()
+#NEED TO MAKE PUB IDS AS THOSE WHOSE FOLD INDEX IS HELD OUT FOR VALIDATION
 
 def load_data(folder, basin_list, input_dim, seq_len):
     scaler = StandardScaler()
@@ -69,7 +70,7 @@ def shuffle_train_data(train_data, train_targets):
     return shuffled_data, shuffled_targets
 
 def save_predictions_per_basin_with_dates(folder, prefix, basin_ids, pred_tensor_list, target_tensor_list, seq_len):
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
     for i, basin in enumerate(basin_ids):
         df = pd.read_csv(f"{folder}/lstm_input_{basin}.csv")
         dates = pd.to_datetime(df[['Year', 'Month', 'Day']])
@@ -84,11 +85,11 @@ def save_predictions_per_basin_with_dates(folder, prefix, basin_ids, pred_tensor
             "observed": trues[:n],
             "predicted": preds[:n]
         })
-        out_df.to_csv(f"{output_dir}/{prefix}_{basin}.csv", index=False)
+        out_df.to_csv(f"{OUTPUT_DIR}/{prefix}_{basin}.csv", index=False)
         
 
 def plot_loss(train_losses, test_losses, filename="loss_curve.png"):
-    os.makedirs(figure_dir, exist_ok=True)
+    os.makedirs(FIGURE_DIR, exist_ok=True)
     plt.figure(figsize=(6, 4))
     plt.plot(train_losses, label="Train")
     plt.plot(test_losses, label="Validation")
@@ -98,11 +99,11 @@ def plot_loss(train_losses, test_losses, filename="loss_curve.png"):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig(os.path.join(figure_dir, filename), dpi=300)
+    plt.savefig(os.path.join(FIGURE_DIR, filename), dpi=300)
     plt.close()
 
 def plot_attention(attn, basin_ids, filename="attention_heatmap.png", highlight_ids=pub_basin_ids):
-    os.makedirs(figure_dir, exist_ok=True)
+    os.makedirs(FIGURE_DIR, exist_ok=True)
     plt.figure(figsize=(12, 8))
     ax = sns.heatmap(attn.cpu().numpy(), cmap="viridis",
                      xticklabels=basin_ids, yticklabels=basin_ids)
@@ -118,5 +119,5 @@ def plot_attention(attn, basin_ids, filename="attention_heatmap.png", highlight_
                 xtick_labels[i].set_color("red")
                 ytick_labels[i].set_color("red")
     plt.tight_layout()
-    plt.savefig(os.path.join(figure_dir, filename), dpi=300)
+    plt.savefig(os.path.join(FIGURE_DIR, filename), dpi=300)
     plt.close()
