@@ -1,4 +1,3 @@
-# tune.py
 import os
 import itertools
 import pandas as pd
@@ -6,20 +5,51 @@ import torch
 from model import BasinLevelCrossBasinAttention
 from config import DEVICE, DATA_FOLDER, BASIN_LIST_FILE
 from utils import load_data, shuffle_train_data
-from train import train_and_evaluate #using train_and_evaluate from train.py
 
 def get_hparam_grid():
     return {
-        'hidden_dim': [2, 4],
+        'hidden_dim': [4],
         'dropout': [0.3],
-        'num_heads': [2],
+        'num_heads': [4],
         'lr': [1e-4],
-        'seq_length': [5],
-        'num_epochs': [5],
-        'context_dropout': [0.3]
+        'seq_length': [2],
+        'num_epochs': [1],
+        'context_dropout': [0.2,0.3]
     }
 
-def tune_hyperparams(fold_index): #validate on fold_index 0 and train on the rest
+def train_and_evaluate(model, all_data, train_targets, val_targets,
+                       device, folder, seq_len, lr, num_epochs):
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    loss_fn = torch.nn.MSELoss()
+    train_losses, val_losses = [], []
+
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+
+        shuffled_data, shuffled_targets = shuffle_train_data(all_data, train_targets)
+        X_b = [shuffled_data[b].to(device) for b in shuffled_data]
+        Y_b = [shuffled_targets[b].to(device) for b in shuffled_targets]
+
+        pred, _ = model(X_b)
+        mask = ~torch.isnan(torch.cat(Y_b))
+        loss = loss_fn(torch.cat(pred)[mask], torch.cat(Y_b)[mask])
+        loss.backward()
+        optimizer.step()
+        train_losses.append(loss.item())
+
+        model.eval()
+        with torch.no_grad():
+            X_val = [all_data[b].to(device) for b in all_data]
+            Y_val = [val_targets[b].to(device) for b in val_targets]
+            pred_val, _ = model(X_val)
+            mask_val = ~torch.isnan(torch.cat(Y_val))
+            val_loss = loss_fn(torch.cat(pred_val)[mask_val], torch.cat(Y_val)[mask_val])
+            val_losses.append(val_loss.item())
+
+    return val_losses[-1]  # or min(val_losses)
+
+def tune_hyperparams(fold_index=0):
     basin_df = pd.read_csv(BASIN_LIST_FILE, dtype=str)
     train_ids = basin_df[basin_df["fold"] != str(fold_index)]["basin"].tolist()
     val_ids = basin_df[basin_df["fold"] == str(fold_index)]["basin"].tolist()
@@ -45,30 +75,28 @@ def tune_hyperparams(fold_index): #validate on fold_index 0 and train on the res
             context_dropout=hparams['context_dropout']
         ).to(DEVICE)
 
-        train_data, val_data, train_targets, val_targets = load_data(
-            DATA_FOLDER, train_ids + val_ids, input_dim=55, seq_len=hparams['seq_length']
+        # Load full input data (all basins), with masking handled internally
+        all_data, train_targets, val_targets = load_data(
+            DATA_FOLDER, input_dim=55, seq_len=hparams['seq_length'], test_fold_idx=fold_index
         )
-
-        train_data = {k: v for k, v in train_data.items() if k in train_ids}
-        val_data = {k: v for k, v in val_data.items() if k in val_ids}
-        train_targets = {k: v for k, v in train_targets.items() if k in train_ids}
-        val_targets = {k: v for k, v in val_targets.items() if k in val_ids}
 
         val_loss = train_and_evaluate(
             model=model,
-            train_data=train_data,
+            all_data=all_data,
             train_targets=train_targets,
-            test_data=val_data,
-            test_targets=val_targets,
+            val_targets=val_targets,
             device=DEVICE,
             folder=DATA_FOLDER,
             seq_len=hparams['seq_length'],
+            lr=hparams['lr'],
+            num_epochs=hparams['num_epochs']
         )
 
         results.append({**hparams, "val_loss": val_loss})
 
     results_df = pd.DataFrame(results)
-    results_df.to_csv(f"output/tuning_results_fold{fold_index}.csv", index=False)
+    os.makedirs("output", exist_ok=True)
+    results_df.to_csv(f"output/best_tuning_results_fold{fold_index}.csv", index=False)
 
     best_row = results_df.loc[results_df["val_loss"].idxmin()]
     print(f"\nBest config for fold {fold_index}:")
@@ -77,5 +105,4 @@ def tune_hyperparams(fold_index): #validate on fold_index 0 and train on the res
     return best_row.to_dict()
 
 if __name__ == "__main__":
-    os.makedirs("output", exist_ok=True)
     best_hparams = tune_hyperparams(fold_index=0)
