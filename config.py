@@ -11,8 +11,8 @@ hparams = {
     'context_dropout': 0.3,
     'num_heads': 2,
     'seq_length': 2,
-    'num_epochs': 5,
-    'lr': 1e-4
+    'num_epochs': 1,
+    'lr': 1e-2
 }
 #test fold index
 #use 0 for tuning, and 1 or 2 or 3 or 4 for training

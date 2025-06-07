@@ -8,52 +8,55 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 import random
-from config import FIGURE_DIR, OUTPUT_DIR, BASIN_LIST_FILE
-
+from config import FIGURE_DIR, OUTPUT_DIR, BASIN_LIST_FILE, TEST_FOLD_INDEX
 #later add nse making function also in the utils
 
-pub_basin_ids = pd.read_csv(BASIN_LIST_FILE, dtype=str).query("gauge == 'False'")['basin'].tolist()
-#NEED TO MAKE PUB IDS AS THOSE WHOSE FOLD INDEX IS HELD OUT FOR VALIDATION
+basin_df = pd.read_csv(BASIN_LIST_FILE, dtype=str)
+basin_df['fold'] = basin_df['fold'].astype(int)
+pub_basin_ids = basin_df[basin_df['fold'] == TEST_FOLD_INDEX]['basin'].tolist()
 
-def load_data(folder, basin_list, input_dim, seq_len):
+
+def load_data(folder, input_dim, seq_len, test_fold_idx=TEST_FOLD_INDEX):
+    basin_df = pd.read_csv(BASIN_LIST_FILE, dtype=str)
+    basin_df['fold'] = basin_df['fold'].astype(int)
+
+    test_basins = basin_df[basin_df['fold'] == test_fold_idx]['basin'].tolist()
+    train_basins = basin_df[basin_df['fold'] != test_fold_idx]['basin'].tolist()
+    all_basins = train_basins + test_basins
+
     scaler = StandardScaler()
-    train_data, test_data, train_targets, test_targets = {}, {}, {}, {}
+    all_data, train_targets, test_targets = {}, {}, {}
 
-    # Fit scaler
-    for basin in basin_list:
+    # Fit scaler only on training basins
+    for basin in train_basins:
         df = pd.read_csv(f"{folder}/lstm_input_{basin}.csv")
-        df_train = df[df["Year"] <= 2010]
-        X = df_train.drop(columns=["Year", "Month", "Day", "q"]).values
+        X = df.drop(columns=["Year", "Month", "Day", "q"]).values
         scaler.partial_fit(X)
 
-    for basin in basin_list:
+    # Prepare data for all basins
+    for basin in all_basins:
         df = pd.read_csv(f"{folder}/lstm_input_{basin}.csv")
-        years = df["Year"].values
         X = df.drop(columns=["Year", "Month", "Day", "q"]).values
         Y = df["q"].values
 
-        xseqs_train, yseqs_train, xseqs_test, yseqs_test = [], [], [], []
-
+        xseqs, yseqs = [], []
         for i in range(len(X) - seq_len):
-            x = X[i:i+seq_len]
-            y = Y[i+seq_len-1]
-            yr = years[i+seq_len-1]
+            x = X[i:i + seq_len]
+            y = Y[i + seq_len - 1]
             x_norm = scaler.transform(x)
-            if yr <= 2010:
-                xseqs_train.append(x_norm)
-                yseqs_train.append(y)
-            else:
-                xseqs_test.append(x_norm)
-                yseqs_test.append(y)
+            xseqs.append(x_norm)
+            yseqs.append(y)
 
-        if xseqs_train:
-            train_data[basin] = torch.tensor(xseqs_train, dtype=torch.float32)
-            train_targets[basin] = torch.tensor(yseqs_train, dtype=torch.float32)
-        if xseqs_test:
-            test_data[basin] = torch.tensor(xseqs_test, dtype=torch.float32)
-            test_targets[basin] = torch.tensor(yseqs_test, dtype=torch.float32)
+        x_tensor = torch.tensor(np.array(xseqs), dtype=torch.float32)
+        y_tensor = torch.tensor(np.array(yseqs), dtype=torch.float32)
 
-    return train_data, test_data, train_targets, test_targets
+        all_data[basin] = x_tensor
+        train_targets[basin] = y_tensor if basin in train_basins else torch.full_like(y_tensor, float('nan'))
+        test_targets[basin] = torch.full_like(y_tensor, float('nan')) if basin in train_basins else y_tensor
+
+    return all_data, train_targets, test_targets #same input for both train and test, but targets differ
+
+
 
 def shuffle_train_data(train_data, train_targets):
     """
@@ -69,7 +72,7 @@ def shuffle_train_data(train_data, train_targets):
         shuffled_targets[b] = y[perm]
     return shuffled_data, shuffled_targets
 
-def save_predictions_per_basin_with_dates(folder, prefix, basin_ids, pred_tensor_list, target_tensor_list, seq_len):
+def save_predictions_per_basin_with_dates(folder, prefix, basin_ids, pred_tensor_list, seq_len):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     for i, basin in enumerate(basin_ids):
         df = pd.read_csv(f"{folder}/lstm_input_{basin}.csv")
@@ -77,7 +80,9 @@ def save_predictions_per_basin_with_dates(folder, prefix, basin_ids, pred_tensor
         valid_idx = np.arange(seq_len - 1, len(df))
 
         preds = pred_tensor_list[i]
-        trues = target_tensor_list[i]
+        #round predictions to 3 decimal places
+        preds = np.round(preds, 3) 
+        trues = df['q'].values[seq_len - 1:]  # Use original target values starting from seq_len - 1
 
         n = min(len(valid_idx), len(preds), len(trues))
         out_df = pd.DataFrame({
@@ -85,10 +90,10 @@ def save_predictions_per_basin_with_dates(folder, prefix, basin_ids, pred_tensor
             "observed": trues[:n],
             "predicted": preds[:n]
         })
-        out_df.to_csv(f"{OUTPUT_DIR}/{prefix}_{basin}.csv", index=False)
+        out_df.to_csv(f"{OUTPUT_DIR}/{prefix}{TEST_FOLD_INDEX}_{basin}.csv", index=False)
         
 
-def plot_loss(train_losses, test_losses, filename="loss_curve.png"):
+def plot_loss(train_losses, test_losses, filename=f"{TEST_FOLD_INDEX}loss_curve.png"):
     os.makedirs(FIGURE_DIR, exist_ok=True)
     plt.figure(figsize=(6, 4))
     plt.plot(train_losses, label="Train")
@@ -102,10 +107,10 @@ def plot_loss(train_losses, test_losses, filename="loss_curve.png"):
     plt.savefig(os.path.join(FIGURE_DIR, filename), dpi=300)
     plt.close()
 
-def plot_attention(attn, basin_ids, filename="attention_heatmap.png", highlight_ids=pub_basin_ids):
+def plot_attention(attn, basin_ids, filename=f"{TEST_FOLD_INDEX}attention_heatmap.png", highlight_ids=pub_basin_ids):
     os.makedirs(FIGURE_DIR, exist_ok=True)
     plt.figure(figsize=(12, 8))
-    ax = sns.heatmap(attn.cpu().numpy(), cmap="viridis",
+    ax = sns.heatmap(attn.detach().cpu().numpy(), cmap="viridis",
                      xticklabels=basin_ids, yticklabels=basin_ids)
     plt.title("Cross-Basin Attention")
     plt.xlabel("Source Basin")
