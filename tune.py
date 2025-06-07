@@ -11,13 +11,13 @@ start_time = time.time()
 
 def get_hparam_grid():
     return {
-        'hidden_dim': [4],
-        'dropout': [0.3],
-        'num_heads': [4],
-        'lr': [1e-4],
-        'seq_length': [2],
-        'num_epochs': [1],
-        'context_dropout': [0.2,0.3]
+        'hidden_dim': [164], #164
+        'dropout': [0.3], #0.3
+        'num_heads': [4], #4
+        'lr': [1e-4], #1e-4
+        'seq_length': [100], #100
+        'num_epochs': [500], #500
+        'context_dropout': [0.2, 0.3, 0.4, 0.5] #0.2, 0.3, 0.4, 0.5
     }
 
 def train_and_evaluate(model, all_data, train_targets, val_targets,
@@ -111,4 +111,6 @@ if __name__ == "__main__":
     best_hparams = tune_hyperparams(fold_index=0)
 
 end_time = time.time()
-print(f'Completed total hyperparam combinations: {len(best_hparams)} in {end_time - start_time:.2f} seconds')
+total_comb = get_hparam_grid()
+total_comb = list(itertools.product(*total_comb.values()))
+print(f'Completed total {len(total_comb)} hyperparams combinations in {end_time - start_time:.2f} seconds')
