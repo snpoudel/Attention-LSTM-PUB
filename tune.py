@@ -2,9 +2,12 @@ import os
 import itertools
 import pandas as pd
 import torch
+import time
 from model import BasinLevelCrossBasinAttention
 from config import DEVICE, DATA_FOLDER, BASIN_LIST_FILE
 from utils import load_data, shuffle_train_data
+
+start_time = time.time()
 
 def get_hparam_grid():
     return {
@@ -106,3 +109,6 @@ def tune_hyperparams(fold_index=0):
 
 if __name__ == "__main__":
     best_hparams = tune_hyperparams(fold_index=0)
+
+end_time = time.time()
+print(f'Completed total hyperparam combinations: {len(best_hparams)} in {end_time - start_time:.2f} seconds')
