@@ -51,7 +51,7 @@ def train_and_evaluate(model, all_data, train_targets, device, folder, seq_len):
         pred_seq = [p.cpu().numpy().tolist() for p in pred_all]
         save_predictions_per_basin_with_dates(folder, f"fold", ids_all, pred_seq, seq_len)
 
-    plot_loss(train_losses)
+    # plot_loss(train_losses) #no need as params are tuned
     plot_attention(attn, ids_all)
 
     print(f"Total Basins: {len(ids_all)}")
