@@ -8,15 +8,15 @@ hparams = {
     'hidden_dim': 4,
     'num_layers': 1,
     'dropout': 0.3,
-    'context_dropout': 0.3,
-    'num_heads': 2,
-    'seq_length': 2,
-    'num_epochs': 1,
-    'lr': 1e-2
+    'context_dropout': 0.5,
+    'num_heads': 4,
+    'seq_length': 100,
+    'num_epochs': 5,
+    'lr': 1e-4
 }
 #test fold index
 #use 0 for tuning, and 1 or 2 or 3 or 4 for training
-TEST_FOLD_INDEX = 0
+TEST_FOLD_INDEX = 1
 
 # Device
 DEVICE = (
