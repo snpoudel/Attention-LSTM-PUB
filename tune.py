@@ -3,7 +3,7 @@ import itertools
 import pandas as pd
 import torch
 import time
-from model import BasinLevelCrossBasinAttention
+from model import CrossBasinAttention
 from config import DEVICE, DATA_FOLDER, BASIN_LIST_FILE
 from utils import load_data, shuffle_train_data
 
@@ -69,7 +69,7 @@ def tune_hyperparams(fold_index=0):
         hparams = dict(zip(keys, comb))
         print(f"\n[{i+1}/{len(combinations)}] Trying config: {hparams}")
 
-        model = BasinLevelCrossBasinAttention(
+        model = CrossBasinAttention(
             input_dim=55,
             hidden_dim=hparams['hidden_dim'],
             num_layers=1,

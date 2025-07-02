@@ -5,13 +5,13 @@ import torch
 # Hyperparameters
 hparams = {
     'input_dim': 55,
-    'hidden_dim': 4,
+    'hidden_dim': 164,
     'num_layers': 1,
     'dropout': 0.3,
     'context_dropout': 0.5,
     'num_heads': 4,
-    'seq_length': 100,
-    'num_epochs': 5,
+    'seq_length': 60,#100
+    'num_epochs': 800,
     'lr': 1e-4
 }
 #test fold index

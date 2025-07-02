@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 import random
-from config import FIGURE_DIR, OUTPUT_DIR, BASIN_LIST_FILE, TEST_FOLD_INDEX
+from config import FIGURE_DIR, BASIN_LIST_FILE, TEST_FOLD_INDEX
 #later add nse making function also in the utils
 
 basin_df = pd.read_csv(BASIN_LIST_FILE, dtype=str)
@@ -72,10 +72,9 @@ def shuffle_train_data(train_data, train_targets):
         shuffled_targets[b] = y[perm]
     return shuffled_data, shuffled_targets
 
-def save_predictions_per_basin_with_dates(folder, prefix, basin_ids, pred_tensor_list, seq_len):
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+def save_predictions_per_basin_with_dates(input_folder, output_folder, prefix, basin_ids, pred_tensor_list, seq_len):
     for i, basin in enumerate(basin_ids):
-        df = pd.read_csv(f"{folder}/lstm_input_{basin}.csv")
+        df = pd.read_csv(f"{input_folder}/lstm_input_{basin}.csv")
         dates = pd.to_datetime(df[['Year', 'Month', 'Day']])
         valid_idx = np.arange(seq_len - 1, len(df))
 
@@ -90,7 +89,7 @@ def save_predictions_per_basin_with_dates(folder, prefix, basin_ids, pred_tensor
             "observed": trues[:n],
             "predicted": preds[:n]
         })
-        out_df.to_csv(f"{OUTPUT_DIR}/{prefix}{TEST_FOLD_INDEX}_{basin}.csv", index=False)
+        out_df.to_csv(f"{output_folder}/{prefix}{TEST_FOLD_INDEX}_{basin}.csv", index=False)
         
 
 def plot_loss(train_losses, test_losses, filename=f"{TEST_FOLD_INDEX}loss_curve.png"):
