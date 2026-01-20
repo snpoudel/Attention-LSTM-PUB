@@ -1,37 +1,14 @@
-# LSTM-Attention4PUB
-A deep learning architecture that combines **LSTM with cross-basin attention** to improve streamflow prediction in ungauged basins (PUB).
+# Attention-LSTM-PUB
+A deep learning architecture that combines **LSTM with attention** to improve streamflow prediction in ungauged basins (PUB).
 
-## Repo Structure
-```
-LSTM-Attention4PUB/
-├── config.py              # Global configuration (device, paths, seed, hyperparameters)
-├── model.py               # Cross-Basin Attention LSTM model definition
-├── train.py               # Train the model on specified folds
-├── predict.py             # Generate predictions using the trained model
-├── plot.py                # Plot loss curves, attention heatmaps, and evaluation metrics
-├── utils.py               # Data loading, preprocessing, and utility functions
-├── tune.py                # One-fold hyperparameter tuning script
-├── assign_folds.py        # Script to assign 5-fold split to basins
-├── data/
-│   └── lstm_input_<basin>.csv   # Per-basin standardized time series data
-├── output/
-│   └── <predictions>.csv        # Prediction outputs saved per basin
-├── figures/
-│   ├── <loss curves>.png
-│   └── <attention heatmaps>.png
-└── README.md              # This file
+## Overview
 
-```
+`01space-time-attn-lstm.py` A complete single script that develops and implements the Attention-LSTM model for streamflow prediction in ungauged basins.
 
-## How to Use this Repo:
-1. Install dependencies using `pip install -r requirements.txt`.
-2. Run `assign_folds.py` to assign each basin to one of the 5 folds.
-3. Run `tune.py` to perform hyperparameter tuning on a single fold. Then update the best found hyperparameters in `config.py`.
-4. Train the model using `train.py` with the desired fold.
-5. Run predictions using `predict.py` on the trained model.
-6. Visualize results using `plot.py` to generate loss curves, attention matrices, and evaluation metrics.
+This repository contains python script that implements a deep learning Long Short-Term Memory (LSTM) model integrated with an attention mechanism specifically designed to improve streamflow predictions in ungauged basins. The code is setup for development in the 531 CAMELS-US basins, which are first divided into 7 folds, and in each run, 5 folds can be used for training, 1 fold for validation (early stopping), and 1 fold for out-of-sample in space testing (ungauged basin prediction). The model class is designed in a way that temporal and attention block are two modular components that can be toggled on or off, meaning a single model architecture can be used for four different configurations: (1) Only LSTM, (2) LSTM + Temporal Attention, (3) LSTM + Spatial Attention, and (4) LSTM + Temporal + Spatial Attention. The use of attention mechanism shows some promise to improve predictions and also shows potentially for some interpretability of model predictions, such as which time steps or which basins are more important for the prediction of a given basin.
 
-PS: The Cross-Basin Attention LSTM model developed in this project is inside `model.py`. The utility functions for data loading, randomizing sequences, saving predictions, and making plots are in `utils.py`.
+This attention-based LSTM architecture for prediction in ungauged basins (PUB) is inspired by the idea that, while ungauged basins lack streamflow records, they still contain other hydrological input features that can be exploited during training to improve their streamflow predictions. By applying cross-basin attention at the output head of the LSTM model, ungauged basins can participate in the model training process by attending to basins that are similar to them. This enables ungauged basins to learn relationships from similar basins during training via attention weights, which are then leveraged to enhance their predictive capabilities.
 
-## Additional Notes
-The deep learning-based **LSTM with cross-basin attention** architecture for prediction in ungauged basins (PUB) is inspired by the idea that, while ungauged basins lack streamflow records, they still contain other hydrological input features that can be exploited during training to improve their streamflow predictions. By applying cross-basin attention at the output head of the LSTM model, ungauged basins can participate in the model training process by attending to basins that are similar to them. This enables ungauged basins to learn relationships from similar basins during training via attention weights, which are then leveraged to enhance their predictive capabilities.
+# A related poster presentation 
+
+![Poster Presentation at AGU 2025](AGU2025-Sandeep.pdf)
