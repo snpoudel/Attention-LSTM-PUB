@@ -38,4 +38,4 @@ Together, the space-time attention mechanism provides the model with additional 
 
 Poster presented at **AGU 2025** outlining more details and results from this work:
 
-[![Poster Preview](poster-preview.png)](AGU2025-Sandeep.pdf)
+![Poster Presentation at AGU 2025](AGU2025-Sandeep.png)
